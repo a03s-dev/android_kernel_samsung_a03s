@@ -47,6 +47,11 @@ static const char * const power_supply_type_text[] = {
 	"USB_HVDCP", "USB_HVDCP_3", "USB_HVDCP_3P5", "Wireless", "USB_FLOAT",
 	"BMS", "Parallel", "Main", "USB_C_UFP", "USB_C_DFP",
 	"Charge_Pump",
+	/*HS03s for SR-AL5625-01-249 by wenyaqi at 20210425 start*/
+	#ifdef CONFIG_AFC_CHARGER
+	"AFC",
+	#endif
+	/*HS03s for SR-AL5625-01-249 by wenyaqi at 20210425 end*/
 };
 
 static const char * const power_supply_usb_type_text[] = {
@@ -58,9 +63,17 @@ static const char * const power_supply_status_text[] = {
 	"Unknown", "Charging", "Discharging", "Not charging", "Full"
 };
 
+/*HS03s for SR-AL5625-01-278 by wenyaqi at 20210427 start*/
+#ifndef HQ_FACTORY_BUILD	//ss version
+static const char * const power_supply_charge_type_text[] = {
+	"Unknown", "N/A", "Trickle", "Fast", "Taper", "Slow"
+};
+#else
 static const char * const power_supply_charge_type_text[] = {
 	"Unknown", "N/A", "Trickle", "Fast", "Taper"
 };
+#endif
+/*HS03s for SR-AL5625-01-278 by wenyaqi at 20210427 end*/
 
 static const char * const power_supply_health_text[] = {
 	"Unknown", "Good", "Overheat", "Dead", "Over voltage",
@@ -237,6 +250,11 @@ static ssize_t power_supply_store_property(struct device *dev,
 	struct power_supply *psy = dev_get_drvdata(dev);
 	enum power_supply_property psp = attr - power_supply_attrs;
 	union power_supply_propval value;
+	/*HS03s for SR-AL5625-01-277 by wenyaqi at 20210427 start*/
+	#ifndef HQ_FACTORY_BUILD	//ss version
+	int store_mode;
+	#endif
+	/*HS03s for SR-AL5625-01-277 by wenyaqi at 20210427 end*/
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
@@ -257,6 +275,17 @@ static ssize_t power_supply_store_property(struct device *dev,
 	case POWER_SUPPLY_PROP_SCOPE:
 		ret = sysfs_match_string(power_supply_scope_text, buf);
 		break;
+	/*HS03s for SR-AL5625-01-277 by wenyaqi at 20210427 start*/
+	#ifndef HQ_FACTORY_BUILD	//ss version
+	case POWER_SUPPLY_PROP_STORE_MODE:
+		if (sscanf(buf, "%10d\n", &store_mode) == 1) {
+			ret = store_mode;
+		} else
+			ret = 0;
+		dev_info(dev, "buf:%s store_mode:%d\n", buf, ret);
+		break;
+	#endif
+	/*HS03s for SR-AL5625-01-277 by wenyaqi at 20210427 end*/
 	default:
 		ret = -EINVAL;
 	}
@@ -290,6 +319,40 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(status),
 	POWER_SUPPLY_ATTR(charge_type),
 	POWER_SUPPLY_ATTR(health),
+	/*HS03s for SR-AL5625-01-249 by wenyaqi at 20210425 start*/
+	#ifdef CONFIG_AFC_CHARGER
+	POWER_SUPPLY_ATTR(hv_charger_status),
+	POWER_SUPPLY_ATTR(afc_result),
+	POWER_SUPPLY_ATTR(hv_disable),
+	#endif
+	/*HS03s for SR-AL5625-01-249 by wenyaqi at 20210425 end*/
+	#ifndef HQ_FACTORY_BUILD	//ss version
+	/* HS03s code for SR-AL5625-01-260 by shixuanxuan at 20210425 start */
+	POWER_SUPPLY_ATTR(batt_protect),
+	POWER_SUPPLY_ATTR(batt_protect_enable),
+	/* HS03s code for SR-AL5625-01-260 by shixuanxuan at 20210425 end */
+	/*HS03s for SR-AL5625-01-293 by wenyaqi at 20210426 start*/
+	POWER_SUPPLY_ATTR(batt_current_ua_now),
+	POWER_SUPPLY_ATTR(battery_cycle),
+	/*HS03s for SR-AL5625-01-293 by wenyaqi at 20210426 end*/
+	/*HS03s for SR-AL5625-01-276 by wenyaqi at 20210426 start*/
+	POWER_SUPPLY_ATTR(batt_slate_mode),
+	/*HS03s for SR-AL5625-01-276 by wenyaqi at 20210426 end*/
+	/*HS03s for SR-AL5625-01-286 by wenyaqi at 20210426 start*/
+	POWER_SUPPLY_ATTR(batt_misc_event),
+	/*HS03s for SR-AL5625-01-286 by wenyaqi at 20210426 end*/
+	/*HS03s for SR-AL5625-01-282 by wenyaqi at 20210426 start*/
+	POWER_SUPPLY_ATTR(batt_current_event),
+	/*HS03s for SR-AL5625-01-282 by wenyaqi at 20210426 end*/
+	/*HS03s for SR-AL5625-01-277 by wenyaqi at 20210427 start*/
+	POWER_SUPPLY_ATTR(store_mode),
+	/*HS03s for SR-AL5625-01-277 by wenyaqi at 20210427 end*/
+	#endif
+	/*HS03s for SR-AL5625-01-272 by wenyaqi at 20210427 start*/
+	#ifdef HQ_FACTORY_BUILD //factory version
+	POWER_SUPPLY_ATTR(batt_cap_control),
+	#endif
+	/*HS03s for SR-AL5625-01-272 by wenyaqi at 20210427 end*/
 	POWER_SUPPLY_ATTR(present),
 	POWER_SUPPLY_ATTR(online),
 	POWER_SUPPLY_ATTR(authentic),

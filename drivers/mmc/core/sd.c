@@ -1174,7 +1174,16 @@ static int _mmc_sd_resume(struct mmc_host *host)
 {
 	int err = 0;
 
+#ifdef CONFIG_MMC_BLOCK_DEFERRED_RESUME
+	bool claim_host = false;
+
+	if (!(host->bus_resume_flags & MMC_BUSRESUME_ENTER_IO)) {
+		mmc_claim_host(host);
+		claim_host = true;
+	}
+#else
 	mmc_claim_host(host);
+#endif
 
 	if (!mmc_card_suspended(host->card))
 		goto out;
@@ -1184,7 +1193,14 @@ static int _mmc_sd_resume(struct mmc_host *host)
 	mmc_card_clr_suspended(host->card);
 
 out:
+#ifdef CONFIG_MMC_BLOCK_DEFERRED_RESUME
+	if (claim_host) {
+		mmc_release_host(host);
+		claim_host = false;
+	}
+#else
 	mmc_release_host(host);
+#endif
 	return err;
 }
 
@@ -1193,8 +1209,18 @@ out:
  */
 static int mmc_sd_resume(struct mmc_host *host)
 {
+	int err = 0;
+
+#ifdef CONFIG_MMC_BLOCK_DEFERRED_RESUME
+	err = _mmc_sd_resume(host);
+	pm_runtime_set_active(&host->card->dev);
+	pm_runtime_mark_last_busy(&host->card->dev);
+#endif
 	pm_runtime_enable(&host->card->dev);
-	return 0;
+/* HS03S code added for SR-AL5625-01-233 by zhaoxiangxiang at 20210430 start */
+	host->caps |= MMC_CAP_AGGRESSIVE_PM;
+/* HS03S code added for SR-AL5625-01-233 by zhaoxiangxiang at 20210430 end */
+	return err;
 }
 
 /*
@@ -1222,11 +1248,16 @@ static int mmc_sd_runtime_resume(struct mmc_host *host)
 {
 	int err;
 
+	if (!(host->caps & MMC_CAP_AGGRESSIVE_PM))
+		return 0;
+
 	err = _mmc_sd_resume(host);
 	if (err && err != -ENOMEDIUM)
 		pr_err("%s: error %d doing runtime resume\n",
 			mmc_hostname(host), err);
-
+/* HS03S code added for SR-AL5625-01-233 by zhaoxiangxiang at 20210430 start */
+	host->caps &= ~MMC_CAP_AGGRESSIVE_PM;
+/* HS03S code added for SR-AL5625-01-233 by zhaoxiangxiang at 20210430 end */
 	return 0;
 }
 
@@ -1316,6 +1347,8 @@ err:
 	mmc_detach_bus(host);
 
 	pr_err("%s: error %d whilst initialising SD card\n",
+		mmc_hostname(host), err);
+	ST_LOG("%s: error %d whilst initialising SD card\n",
 		mmc_hostname(host), err);
 
 	return err;
