@@ -507,7 +507,7 @@ static unsigned int sec_on;
 /* ion */
 
 #ifdef AEE_DUMP_BY_USING_ION_MEMORY
-#include <ion.h>
+#include "../../../../../staging/android/mtk_ion/ion.h"
 #include <mtk/ion_drv.h>
 #include <mtk/mtk_ion.h>
 
