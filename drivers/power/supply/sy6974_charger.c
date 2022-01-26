@@ -338,19 +338,21 @@ int sy6974_exit_hiz_mode(struct sy6974 *sy)
 }
 EXPORT_SYMBOL_GPL(sy6974_exit_hiz_mode);
 
-int sy6974_get_hiz_mode(struct sy6974 *sy, u8 *state)
-{
-	u8 val;
-	int ret;
+/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 start */
+// int sy6974_get_hiz_mode(struct sy6974 *sy, u8 *state)
+// {
+// 	u8 val;
+// 	int ret;
 
-	ret = sy6974_read_byte(sy, SY6974_REG_00, &val);
-	if (ret)
-		return ret;
-	*state = (val & REG00_ENHIZ_MASK) >> REG00_ENHIZ_SHIFT;
+// 	ret = sy6974_read_byte(sy, SY6974_REG_00, &val);
+// 	if (ret)
+// 		return ret;
+// 	*state = (val & REG00_ENHIZ_MASK) >> REG00_ENHIZ_SHIFT;
 
-	return 0;
-}
-EXPORT_SYMBOL_GPL(sy6974_get_hiz_mode);
+// 	return 0;
+// }
+// EXPORT_SYMBOL_GPL(sy6974_get_hiz_mode);
+/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 end */
 
 static int sy6974_enable_term(struct sy6974 *sy, bool enable)
 {
@@ -1226,6 +1228,27 @@ static int sy6974_set_hiz_mode(struct charger_device *chg_dev, bool en)
 	return ret;
 }
 
+/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 start */
+static int sy6974_get_hiz_mode(struct charger_device *chg_dev)
+{
+	int ret;
+	struct sy6974 *bq = dev_get_drvdata(&chg_dev->dev);
+	u8 val;
+	ret = sy6974_read_byte(bq, SY6974_REG_00, &val);
+	if (ret == 0){
+		pr_err("Reg[%.2x] = 0x%.2x\n", SY6974_REG_00, val);
+	}
+
+	/*HS03s added for DEVAL5626-463 by wangzikang at 20210823 start */
+	ret = (val & REG00_ENHIZ_MASK) >> REG00_ENHIZ_SHIFT;
+	/*HS03s added for DEVAL5626-463 by wangzikang at 20210823 end */
+
+	pr_err("%s:hiz mode %s\n",__func__, ret ? "enabled" : "disabled");
+
+	return ret;
+}
+/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 end */
+
 static struct charger_ops sy6974_chg_ops = {
 	/* Normal charging */
 	.plug_in = sy6974_plug_in,
@@ -1278,6 +1301,9 @@ static struct charger_ops sy6974_chg_ops = {
 
 	.get_chr_status = sy6974_get_charging_status,
 	.set_hiz_mode = sy6974_set_hiz_mode,
+	/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 start */
+	.get_hiz_mode = sy6974_get_hiz_mode,
+	/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 end */
 };
 
 static struct of_device_id sy6974_charger_match_table[] = {

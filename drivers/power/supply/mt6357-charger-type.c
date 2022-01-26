@@ -22,6 +22,11 @@
 #include <mt-plat/mtk_boot_common.h>
 #endif
 /*HS03s for SR-AL5625-01-261 by wenyaqi at 20210428 end*/
+
+/*HS03s for P210730-04606 by wangzikang at 20210816 start*/
+#include <linux/reboot.h>	/*kernel_power_off*/
+/*HS03s for P210730-04606 by wangzikang at 20210816 end*/
+
 #if defined(CONFIG_VBUS_NOTIFIER)
 #include <linux/vbus_notifier.h>
 #endif
@@ -119,6 +124,14 @@ struct mtk_charger_type {
 
 	int first_connect;
 	int bc12_active;
+	/*HS03s for P210730-04606 by wangzikang at 20210816 start*/
+	// spinlock_t slock;
+	/*HS03s for P210730-04606 by wangzikang at 20210816 end*/
+	#ifndef HQ_FACTORY_BUILD	//ss version
+	struct delayed_work		dwork;
+	int power_off_flag;
+	#endif
+
 };
 
 static enum power_supply_property chr_type_properties[] = {
@@ -198,7 +211,10 @@ static void hw_bc11_init(struct mtk_charger_type *info)
 #if IS_ENABLED(CONFIG_USB_MTK_HDRC)
 	int timeout = 200;
 #endif
+	/*HS03s for P210730-04606 by wangzikang at 20210816 start*/
+	// mdelay(200);
 	msleep(200);
+	/*HS03s for P210730-04606 by wangzikang at 20210816 end*/
 
 	#ifndef HQ_FACTORY_BUILD	//ss version
 	if (hq_get_boot_mode() == KERNEL_POWER_OFF_CHARGING_BOOT ||
@@ -214,7 +230,10 @@ static void hw_bc11_init(struct mtk_charger_type *info)
 		if (is_usb_rdy() == false) {
 			pr_info("CDP, block\n");
 			while (is_usb_rdy() == false && timeout > 0) {
+				/*HS03s for P210730-04606 by wangzikang at 20210816 start*/
+				// mdelay(100);
 				msleep(100);
+				/*HS03s for P210730-04606 by wangzikang at 20210816 end*/
 				timeout--;
 			}
 			if (timeout == 0)
@@ -285,7 +304,10 @@ skip:
 		PMIC_RG_BC11_IPD_EN_MASK,
 		PMIC_RG_BC11_IPD_EN_SHIFT,
 		0x1);
+	/*HS03s for P210730-04606 by wangzikang at 20210816 start*/
+	// mdelay(50);
 	msleep(50);
+	/*HS03s for P210730-04606 by wangzikang at 20210816 end*/
 
 #if IS_ENABLED(CONFIG_USB_MTK_HDRC)
 	Charger_Detect_Init();
@@ -319,7 +341,10 @@ static unsigned int hw_bc11_DCD(struct mtk_charger_type *info)
 		PMIC_RG_BC11_CMP_EN_MASK,
 		PMIC_RG_BC11_CMP_EN_SHIFT,
 		0x2);
+	/*HS03s for P210730-04606 by wangzikang at 20210816 start*/
+	// mdelay(80);
 	msleep(80);
+	/*HS03s for P210730-04606 by wangzikang at 20210816 end*/
 	/* mdelay(80); */
 	wChargerAvail = bc11_get_register_value(info->regmap,
 		PMIC_RGS_BC11_CMP_OUT_ADDR,
@@ -381,7 +406,10 @@ static unsigned int hw_bc11_stepA2(struct mtk_charger_type *info)
 		PMIC_RG_BC11_CMP_EN_MASK,
 		PMIC_RG_BC11_CMP_EN_SHIFT,
 		0x1);
+	/*HS03s for P210730-04606 by wangzikang at 20210816 start*/
+	// mdelay(80);
 	msleep(80);
+	/*HS03s for P210730-04606 by wangzikang at 20210816 end*/
 	/* mdelay(80); */
 	wChargerAvail = bc11_get_register_value(info->regmap,
 					PMIC_RGS_BC11_CMP_OUT_ADDR,
@@ -437,7 +465,10 @@ static unsigned int hw_bc11_stepB2(struct mtk_charger_type *info)
 		PMIC_RG_BC11_CMP_EN_MASK,
 		PMIC_RG_BC11_CMP_EN_SHIFT,
 		0x2);
+	/*HS03s for P210730-04606 by wangzikang at 20210816 start*/
+	// mdelay(80);
 	msleep(80);
+	/*HS03s for P210730-04606 by wangzikang at 20210816 end*/
 	wChargerAvail = bc11_get_register_value(info->regmap,
 		PMIC_RGS_BC11_CMP_OUT_ADDR,
 		PMIC_RGS_BC11_CMP_OUT_MASK,
@@ -569,7 +600,10 @@ static int get_charger_type(struct mtk_charger_type *info)
 		if (hq_get_boot_mode() == KERNEL_POWER_OFF_CHARGING_BOOT ||
 		    hq_get_boot_mode() == LOW_POWER_OFF_CHARGING_BOOT) {
 			pr_info("Pull up D+ to 0.6V for CDP in KPOC\n");
+			/*HS03s for P210730-04606 by wangzikang at 20210816 start*/
+			//mdelay(100);
 			msleep(100);
+			/*HS03s for P210730-04606 by wangzikang at 20210816 end*/
 			/* RG_bc11_VSRC_EN[1:0] = 10 */
 			bc11_set_register_value(info->regmap,
 				PMIC_RG_BC11_VSRC_EN_ADDR,
@@ -624,6 +658,11 @@ void do_charger_detect(struct mtk_charger_type *info, bool en)
 {
 	union power_supply_propval prop, prop2, prop3;
 	int ret = 0;
+	/*HS03s for P210730-04606 by wangzikang at 20210816 start*/
+	// unsigned long flags;
+	// spin_lock_irqsave(&info->slock, flags);
+	pr_info("%s enter \n",__func__);
+	/*HS03s for P210730-04606 by wangzikang at 20210816 end*/
 /* HS03s for SR-AL5625-01-515 by wangzikang at 21210610 start*/
 //#ifndef CONFIG_TCPC_CLASS
 	if (!mt_usb_is_device()) {
@@ -651,7 +690,26 @@ void do_charger_detect(struct mtk_charger_type *info, bool en)
 	pr_notice("%s type:%d usb_type:%d\n", __func__, prop2.intval, prop3.intval);
 
 	power_supply_changed(info->psy);
+	/*HS03s for P210730-04606 by wangzikang at 20210816 start*/
+	// spin_unlock_irqrestore(&info->slock, flags);
+	/*HS03s for P210730-04606 by wangzikang at 20210816 end*/
 }
+#ifndef HQ_FACTORY_BUILD	//ss version
+#define POWER_OFF_CHECK_TIME_MS 1000
+#define FLAG_POWER_OFF 0
+#define FLAG_POWER_ON  1
+static void check_off_delay_work(struct work_struct *work)
+{
+	struct mtk_charger_type *info = (struct mtk_charger_type *)container_of(
+				     work, struct mtk_charger_type, dwork.work);
+	pr_info("%s: ENTER info->power_off_flag=%d\n", __func__,info->power_off_flag);
+	
+	if(info->power_off_flag == FLAG_POWER_OFF) {
+		pr_info("%s: shutdown!\n", __func__);
+		kernel_power_off();
+	}
+}
+#endif
 
 static void do_charger_detection_work(struct work_struct *data)
 {
@@ -661,6 +719,11 @@ static void do_charger_detection_work(struct work_struct *data)
 #if defined(CONFIG_VBUS_NOTIFIER)
 	vbus_status_t status = 0;
 #endif
+
+	/*HS03s for P210730-04606 by wangzikang at 20210816 start*/
+	pr_notice("%s: enter\n", __func__);
+	/*HS03s for P210730-04606 by wangzikang at 20210816 end*/	
+
 	chrdet = bc11_get_register_value(info->regmap,
 		PMIC_RGS_CHRDET_ADDR,
 		PMIC_RGS_CHRDET_MASK,
@@ -678,6 +741,25 @@ static void do_charger_detection_work(struct work_struct *data)
 
 	if (chrdet)
 		do_charger_detect(info, chrdet);
+	/*HS03s for P210730-04606 by wangzikang at 20210816 start*/
+	#ifndef HQ_FACTORY_BUILD	//ss version
+	else {
+		hw_bc11_done(info);
+		/* 8 = KERNEL_POWER_OFF_CHARGING_BOOT */
+		/* 9 = LOW_POWER_OFF_CHARGING_BOOT */
+		pr_info("%s: bootmode=%d\n", __func__,hq_get_boot_mode());
+		if (hq_get_boot_mode() == KERNEL_POWER_OFF_CHARGING_BOOT ||
+		hq_get_boot_mode() == LOW_POWER_OFF_CHARGING_BOOT) {
+			pr_info("%s: Unplug Charger/USB\n", __func__);
+
+			pr_info("%s: system_state=%d\n", __func__,
+				system_state);
+			if (system_state != SYSTEM_POWER_OFF)
+				kernel_power_off();
+		}
+	}
+	#endif
+	/*HS03s for P210730-04606 by wangzikang at 20210816 end*/
 }
 
 
@@ -688,11 +770,40 @@ irqreturn_t chrdet_int_handler(int irq, void *data)
 #if defined(CONFIG_VBUS_NOTIFIER)
 	vbus_status_t status = 0;
 #endif
+
+	/*HS03s for P210730-04606 by wangzikang at 20210816 start*/
+	pr_notice("%s: enter\n", __func__);
+	/*HS03s for P210730-04606 by wangzikang at 20210816 end*/
+
 	chrdet = bc11_get_register_value(info->regmap,
 		PMIC_RGS_CHRDET_ADDR,
 		PMIC_RGS_CHRDET_MASK,
 		PMIC_RGS_CHRDET_SHIFT);
+	/*HS03s for P210730-04606 by wangzikang at 20210816 start*/
+	#ifndef HQ_FACTORY_BUILD	//ss version
+	if (!chrdet) {
+		hw_bc11_done(info);
+		/* 8 = KERNEL_POWER_OFF_CHARGING_BOOT */
+		/* 9 = LOW_POWER_OFF_CHARGING_BOOT */
+		pr_info("%s: bootmode=%d\n", __func__,hq_get_boot_mode());
+		if (hq_get_boot_mode() == KERNEL_POWER_OFF_CHARGING_BOOT ||
+		hq_get_boot_mode() == LOW_POWER_OFF_CHARGING_BOOT) {
+			pr_info("%s: Unplug Charger/USB\n", __func__);
 
+			pr_info("%s: system_state=%d\n", __func__,
+				system_state);
+			if (system_state != SYSTEM_POWER_OFF) {
+				info->power_off_flag = FLAG_POWER_OFF;
+				schedule_delayed_work(&info->dwork,msecs_to_jiffies(POWER_OFF_CHECK_TIME_MS));
+			}
+
+		}
+	} else {
+		info->power_off_flag = FLAG_POWER_ON;
+		pr_info("%s: Vbus recovery!\n", __func__);
+	}
+	#endif
+	/*HS03s for P210730-04606 by wangzikang at 20210816 end*/
 	pr_notice("%s: chrdet:%d\n", __func__, chrdet);
 
 #if defined(CONFIG_VBUS_NOTIFIER)
@@ -1081,6 +1192,9 @@ static int mt6357_charger_type_probe(struct platform_device *pdev)
 	dev_set_drvdata(&pdev->dev, info);
 	info->pdev = pdev;
 	mutex_init(&info->ops_lock);
+	/*HS03s for P210730-04606 by wangzikang at 20210816 start*/
+	// spin_lock_init(&info->slock);
+	/*HS03s for P210730-04606 by wangzikang at 20210816 end*/
 
 	info->psy_desc.name = "mtk_charger_type";
 	info->psy_desc.type = POWER_SUPPLY_TYPE_UNKNOWN;
@@ -1178,6 +1292,9 @@ static int mt6357_charger_type_probe(struct platform_device *pdev)
 
 	if (info->bc12_active) {
 		INIT_WORK(&info->chr_work, do_charger_detection_work);
+		#ifndef HQ_FACTORY_BUILD	//ss version
+		INIT_DELAYED_WORK(&info->dwork,check_off_delay_work);
+		#endif
 		schedule_work(&info->chr_work);
 
 		ret = devm_request_threaded_irq(&pdev->dev,

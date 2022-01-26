@@ -62,12 +62,6 @@ static bool blinkenlights;
 module_param(blinkenlights, bool, S_IRUGO);
 MODULE_PARM_DESC(blinkenlights, "true to cycle leds on hubs");
 
-/*HS03s for SR-AL5625-01-286 by wenyaqi at 20210426 start*/
-#ifndef HQ_FACTORY_BUILD	//ss version
-int g_sec_battery_cable_timeout = 0;
-EXPORT_SYMBOL(g_sec_battery_cable_timeout);
-#endif
-/*HS03s for SR-AL5625-01-286 by wenyaqi at 20210426 end*/
 /*HS03s for SR-AL5625-01-282 by wenyaqi at 20210426 start*/
 #ifndef HQ_FACTORY_BUILD	//ss version
 int g_usb_connected_unconfigured = 0;
@@ -5130,11 +5124,6 @@ static void hub_port_connect(struct usb_hub *hub, int port1, u16 portstatus,
 		if (status)
 			dev_dbg(hub->intfdev, "%dmA power budget left\n", status);
 
-		/*HS03s for SR-AL5625-01-286 by wenyaqi at 20210426 start*/
-		#ifndef HQ_FACTORY_BUILD	//ss version
-		g_sec_battery_cable_timeout = 0;
-		#endif
-		/*HS03s for SR-AL5625-01-286 by wenyaqi at 20210426 end*/
 		return;
 
 loop_disable:
@@ -5159,11 +5148,6 @@ loop:
 	if (hub->hdev->parent ||
 			!hcd->driver->port_handed_over ||
 			!(hcd->driver->port_handed_over)(hcd, port1)) {
-		/*HS03s for SR-AL5625-01-286 by wenyaqi at 20210426 start*/
-		#ifndef HQ_FACTORY_BUILD	//ss version
-		g_sec_battery_cable_timeout = 1;
-		#endif
-		/*HS03s for SR-AL5625-01-286 by wenyaqi at 20210426 end*/
 		if (status != -ENOTCONN && status != -ENODEV)
 			dev_err(&port_dev->dev,
 					"unable to enumerate USB device\n");

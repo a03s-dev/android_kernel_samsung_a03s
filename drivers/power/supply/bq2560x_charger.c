@@ -392,19 +392,21 @@ int bq2560x_exit_hiz_mode(struct bq2560x *bq)
 }
 EXPORT_SYMBOL_GPL(bq2560x_exit_hiz_mode);
 
-int bq2560x_get_hiz_mode(struct bq2560x *bq, u8 *state)
-{
-	u8 val;
-	int ret;
+/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 start */
+// int bq2560x_get_hiz_mode(struct bq2560x *bq, u8 *state)
+// {
+// 	u8 val;
+// 	int ret;
 
-	ret = bq2560x_read_byte(bq, BQ2560X_REG_00, &val);
-	if (ret)
-		return ret;
-	*state = (val & REG00_ENHIZ_MASK) >> REG00_ENHIZ_SHIFT;
+// 	ret = bq2560x_read_byte(bq, BQ2560X_REG_00, &val);
+// 	if (ret)
+// 		return ret;
+// 	*state = (val & REG00_ENHIZ_MASK) >> REG00_ENHIZ_SHIFT;
 
-	return 0;
-}
-EXPORT_SYMBOL_GPL(bq2560x_get_hiz_mode);
+// 	return 0;
+// }
+// EXPORT_SYMBOL_GPL(bq2560x_get_hiz_mode);
+/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 end */
 
 static int bq2560x_enable_term(struct bq2560x *bq, bool enable)
 {
@@ -1312,6 +1314,27 @@ static int bq2560x_set_hiz_mode(struct charger_device *chg_dev, bool en)
 }
 /*HS03s for DEVAL5625-1125 by wenyaqi at 20210607 end*/
 
+/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 start */
+static int bq2560x_get_hiz_mode(struct charger_device *chg_dev)
+{
+	int ret;
+	struct bq2560x *bq = dev_get_drvdata(&chg_dev->dev);
+	u8 val;
+	ret = bq2560x_read_byte(bq, BQ2560X_REG_00, &val);
+	if (ret == 0){
+		pr_err("Reg[%.2x] = 0x%.2x\n", BQ2560X_REG_00, val);
+	}
+
+	/*HS03s added for DEVAL5626-463 by wangzikang at 20210823 start */
+	ret = (val & REG00_ENHIZ_MASK) >> REG00_ENHIZ_SHIFT;
+	/*HS03s added for DEVAL5626-463 by wangzikang at 20210823 end */
+
+	pr_err("%s:hiz mode %s\n",__func__, ret ? "enabled" : "disabled");
+
+	return ret;
+}
+/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 end */
+
 static struct charger_ops bq2560x_chg_ops = {
 	/* Normal charging */
 	.plug_in = bq2560x_plug_in,
@@ -1366,6 +1389,9 @@ static struct charger_ops bq2560x_chg_ops = {
 	/*HS03s for DEVAL5625-1125 by wenyaqi at 20210607 start*/
 	.set_hiz_mode = bq2560x_set_hiz_mode,
 	/*HS03s for DEVAL5625-1125 by wenyaqi at 20210607 end*/
+	/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 start */
+	.get_hiz_mode = bq2560x_get_hiz_mode,
+	/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 end */
 };
 
 static struct of_device_id bq2560x_charger_match_table[] = {

@@ -226,6 +226,9 @@ struct jadard_ts_data {
 	/*hs03s code for SR-AL5625-01-305 by yuanliding at 20210521 start*/
 	struct sec_cmd_data sec;
 	/*hs03s code for SR-AL5625-01-305 by yuanliding at 20210521 end*/
+	/*hs03s  code for DEVAL5626-589 by huangzhongjie at 20210902 start*/
+	bool tp_is_enabled;
+	/*hs03s  code for DEVAL5626-589 by huangzhongjie at 20210902 end*/
 };
 
 struct jadard_ic_data {

@@ -76,9 +76,9 @@ static u8 checksum_l_bin;
 #define LOG_DBG(fmt, args...)   pr_info(LOG_TAG fmt, ##args)
 #define LOG_ERR(fmt, args...)   pr_err(LOG_TAG fmt, ##args)
 
-/*TabA7 Lite code for OT8-2395 by Hujincan at 20210129 start*/
-static int mEnabled = 1;
-/*TabA7 Lite code for OT8-2395 by Hujincan at 20210129 end*/
+/* hs03s code for DEVAL5625-2136 by xiongxiaoliang at 2021/07/29 start */
+static int mEnabled = 0;
+/* hs03s code for DEVAL5625-2136 by xiongxiaoliang at 2021/07/29 end */
 
 pabovXX_t abov_sar_ptr;
 
@@ -1881,6 +1881,7 @@ static int abov_remove(struct i2c_client *client)
 }
 
 /*TabA7 Lite code for OT8-2395 by Hujincan at 20210129 start*/
+/* hs03s code for DEVAL5625-2136 by xiongxiaoliang at 2021/07/29 start */
 static int abov_suspend(struct device *dev)
 {
     pabovXX_t this = dev_get_drvdata(dev);
@@ -1889,9 +1890,13 @@ static int abov_suspend(struct device *dev)
         if (mEnabled){
             write_register(this, ABOV_CTRL_MODE_REG, 0x01);//sleep mode 30ms check
         }
+        else{
+            write_register(this, ABOV_CTRL_MODE_REG, 0x02);// stop mode
+        }
     }
     return 0;
 }
+/* hs03s code for DEVAL5625-2136 by xiongxiaoliang at 2021/07/29 end */
 static int abov_resume(struct device *dev)
 {
     pabovXX_t this = dev_get_drvdata(dev);

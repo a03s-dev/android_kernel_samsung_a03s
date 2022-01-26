@@ -434,7 +434,13 @@ static int jadard_report_data(struct jadard_ts_data *ts, int ts_path, int ts_sta
 	JD_D("%s: Entering, ts_status=%d\n", __func__, ts_status);
 
 	if (ts_path == JD_REPORT_COORD) {
-		g_module_fp.fp_report_points(ts);
+		/*hs03s code for DEVAL5626-589 by huangzhongjie at 20210902 start*/
+		if (ts->tp_is_enabled != 0) {
+			g_module_fp.fp_report_points(ts);
+		} else {
+			JD_E("tp enable is 0, dont report point\n");
+		}
+		/*hs03s code for DEVAL5626-589 by huangzhongjie at 20210902 end*/
 #ifdef JD_SMART_WAKEUP
 	} else if (ts_path == JD_REPORT_SMWP_EVENT) {
 		jadard_wake_event_report();
@@ -1212,7 +1218,18 @@ void jadard_common_proc_deinit(void)
 	remove_proc_entry(JADARD_PROC_HIGH_SENSITIVITY_FILE, pjadard_touch_proc_dir);
 #endif
 }
+/*hs03s code for DEVAL5626-589 by huangzhongjie at 20210902 start*/
+static int jadard_input_open(struct input_dev *dev)
+{
+    pjadard_ts_data->tp_is_enabled = 1;
+    return 0;
+}
 
+static void jadard_input_close(struct input_dev *dev)
+{
+    pjadard_ts_data->tp_is_enabled = 0;
+}
+/*hs03s code for DEVAL5626-589 by huangzhongjie at 20210902 end*/
 int jadard_input_register(struct jadard_ts_data *ts)
 {
 	int ret = 0;
@@ -1263,6 +1280,11 @@ int jadard_input_register(struct jadard_ts_data *ts)
 	input_set_abs_params(ts->input_dev, ABS_MT_WIDTH_MAJOR, ts->pdata->abs_width_min,
 							ts->pdata->abs_width_max, ts->pdata->abs_pressure_fuzz, 0);
 #endif
+
+	/*hs03s code for DEVAL5626-589 by huangzhongjie at 20210902 start*/
+	ts->input_dev->open = jadard_input_open;
+	ts->input_dev->close = jadard_input_close;
+	/*hs03s code for DEVAL5626-589 by huangzhongjie at 20210902 end*/
 
 	if (jadard_input_register_device(ts->input_dev) == 0) {
 		return JD_NO_ERR;
@@ -1559,7 +1581,13 @@ int jadard_chip_common_init(void)
 		JD_I("%s: sec_cmd_init success!\n", __func__);
 	}
 	/*hs03s code for SR-AL5625-01-305 by yuanliding at 20210521 end*/
-
+	/*hs03s code for DEVAL5626-589 by huangzhongjie at 20210902 start*/
+	ret = sysfs_create_link(&ts->sec.fac_dev->kobj,&ts->input_dev->dev.kobj, "input");
+	if (ret < 0)
+	{
+		JD_E("create enable node fail\n");
+	}
+	/*hs03s code for DEVAL5626-589 by huangzhongjie at 20210902 end*/
 	platform_device_register(&hwinfo_device);
 	jd_test_node_init(&hwinfo_device);
 

@@ -101,6 +101,10 @@ struct charger_ops {
 	int (*set_hiz_mode)(struct charger_device *chg_dev, bool enable);
 	/*HS03s for DEVAL5625-1125 by wenyaqi at 20210607 end*/
 
+	/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 start */
+	int (*get_hiz_mode)(struct charger_device *chg_dev);
+	/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 end */
+
 	/* PE+/PE+2.0 */
 	int (*send_ta_current_pattern)(struct charger_device *dev, bool is_inc);
 	int (*send_ta20_current_pattern)(struct charger_device *dev, u32 uV);
@@ -237,6 +241,10 @@ extern int charger_dev_get_chr_status(
 extern int charger_dev_set_hiz_mode(
 	struct charger_device *chg_dev, bool enable);
 /*HS03s for DEVAL5625-1125 by wenyaqi at 20210607 end*/
+/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 start */
+extern int charger_dev_get_hiz_mode(
+	struct charger_device *chg_dev);
+/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 end */
 extern int charger_dev_dump_registers(
 	struct charger_device *charger_dev);
 extern int charger_dev_enable_vbus_ovp(

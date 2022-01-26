@@ -1624,6 +1624,9 @@ static void ss_charger_check_status(struct mtk_charger *info)
 {
 	static bool input_suspend_old;
 	static bool ovp_disable_old;
+	/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 start */
+	bool input_suspend_hw;
+	/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 end */
 	#ifdef HQ_FACTORY_BUILD //factory version
 	static bool batt_cap_control_old;
 	#endif
@@ -1646,8 +1649,15 @@ static void ss_charger_check_status(struct mtk_charger *info)
 	} else {
 		info->ovp_disable = false;
 	}
+	/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 start */
+	input_suspend_hw = charger_dev_get_hiz_mode(info->chg1_dev);
+	chr_err("%s: input_suspend_hw=%d",__func__,input_suspend_hw);
+	/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 end */
 
 	if (input_suspend_old == info->input_suspend &&
+		/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 start */
+		(input_suspend_hw == info->input_suspend) &&
+		/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 end */
 		#ifdef HQ_FACTORY_BUILD //factory version
 		ovp_disable_old == info->ovp_disable &&
 		batt_cap_control_old == info->batt_cap_control) {
@@ -2126,6 +2136,42 @@ static bool mtk_is_charger_on(struct mtk_charger *info)
 
 	return true;
 }
+/*HS03s for P210730-04606 by wangzikang at 20210816 start*/
+#ifndef HQ_FACTORY_BUILD	//ss version
+static void offmode_delay_work(struct work_struct *work)
+{
+	struct mtk_charger *info = container_of(work,
+			struct mtk_charger, poweroff_dwork.work);
+	int vbus = 0;
+
+	chr_err("%s: ENTER\n", __func__);
+	vbus = get_vbus(info);
+	if (vbus >= 0 && vbus < 2500) {
+		chr_err("Recheck:Unplug Charger/USB in KPOC mode, vbus=%d, shutdown\n", vbus);
+		kernel_power_off();
+	} else {
+		chr_err("Recheck:Vbus recovery.\n");
+	}
+}
+
+#define RECHECK_VBUS_TIME_MS 3000
+static void kpoc_power_off_check(struct mtk_charger *info)
+{
+	unsigned int boot_mode = info->bootmode;
+	int vbus = 0;
+
+	/* 8 = KERNEL_POWER_OFF_CHARGING_BOOT */
+	/* 9 = LOW_POWER_OFF_CHARGING_BOOT */
+	if (boot_mode == 8 || boot_mode == 9) {
+		vbus = get_vbus(info);
+		if (vbus >= 0 && vbus < 2500) {
+			chr_err("Unplug Charger/USB in KPOC mode, vbus=%d, schedule the power off delay work\n", vbus);
+			schedule_delayed_work(&info->poweroff_dwork, msecs_to_jiffies(RECHECK_VBUS_TIME_MS));
+		}
+	}
+}
+#endif
+/*HS03s for P210730-04606 by wangzikang at 20210816 end*/
 
 static char *dump_charger_type(int type)
 {
@@ -2205,6 +2251,11 @@ static int charger_routine_thread(void *arg)
 		charger_check_status(info);
 		/* HS03s code for SR-AL5625-01-35 by wenyaqi at 20210420 start */
 		ss_charger_check_status(info);
+		/*HS03s for P210730-04606 by wangzikang at 20210816 start*/
+		#ifndef HQ_FACTORY_BUILD	//ss version
+		kpoc_power_off_check(info);
+		#endif
+		/*HS03s for P210730-04606 by wangzikang at 20210816 end*/
 		if (info->cmd_discharging == true)
 			ss_charger_status = 1;
 		else
@@ -2868,6 +2919,7 @@ static int mtk_charger_probe(struct platform_device *pdev)
 	info->charger_wakelock_app =
 		wakeup_source_register(NULL, "wakelockapp");
 	INIT_DELAYED_WORK(&info->retail_app_status_change_work, ss_retail_app_status_change_work);
+	INIT_DELAYED_WORK(&info->poweroff_dwork, offmode_delay_work);
 	#endif
 	/*HS03s for SR-AL5625-01-277 by wenyaqi at 20210427 end*/
 	/* HS03s code for SR-AL5625-01-260 by shixuanxuan at 20210425 start */
