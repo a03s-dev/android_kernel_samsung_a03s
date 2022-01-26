@@ -353,19 +353,21 @@ int sgm41511_exit_hiz_mode(struct sgm41511 *sgm)
 }
 EXPORT_SYMBOL_GPL(sgm41511_exit_hiz_mode);
 
-int sgm41511_get_hiz_mode(struct sgm41511 *sgm, u8 *state)
-{
-	u8 val;
-	int ret;
+/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 start */
+// int sgm41511_get_hiz_mode(struct sgm41511 *sgm, u8 *state)
+// {
+// 	u8 val;
+// 	int ret;
 
-	ret = sgm41511_read_byte(sgm, SGM41511_REG_00, &val);
-	if (ret)
-		return ret;
-	*state = (val & REG00_ENHIZ_MASK) >> REG00_ENHIZ_SHIFT;
+// 	ret = sgm41511_read_byte(sgm, SGM41511_REG_00, &val);
+// 	if (ret)
+// 		return ret;
+// 	*state = (val & REG00_ENHIZ_MASK) >> REG00_ENHIZ_SHIFT;
 
-	return 0;
-}
-EXPORT_SYMBOL_GPL(sgm41511_get_hiz_mode);
+// 	return 0;
+// }
+// EXPORT_SYMBOL_GPL(sgm41511_get_hiz_mode);
+/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 end */
 
 static int sgm41511_enable_term(struct sgm41511 *sgm, bool enable)
 {
@@ -1248,6 +1250,27 @@ static int sgm41511_set_hiz_mode(struct charger_device *chg_dev, bool en)
 }
 /*HS03s for DEVAL5625-1125 by wenyaqi at 20210607 end*/
 
+/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 start */
+static int sgm41511_get_hiz_mode(struct charger_device *chg_dev)
+{
+	int ret;
+	struct sgm41511 *bq = dev_get_drvdata(&chg_dev->dev);
+	u8 val;
+	ret = sgm41511_read_byte(bq, SGM41511_REG_00, &val);
+	if (ret == 0){
+		pr_err("Reg[%.2x] = 0x%.2x\n", SGM41511_REG_00, val);
+	}
+
+	/*HS03s added for DEVAL5626-463 by wangzikang at 20210823 start */
+	ret = (val & REG00_ENHIZ_MASK) >> REG00_ENHIZ_SHIFT;
+	/*HS03s added for DEVAL5626-463 by wangzikang at 20210823 end */
+
+	pr_err("%s:hiz mode %s\n",__func__, ret ? "enabled" : "disabled");
+
+	return ret;
+}
+/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 end */
+
 static struct charger_ops sgm41511_chg_ops = {
 	/* Normal charging */
 	.plug_in = sgm41511_plug_in,
@@ -1302,6 +1325,9 @@ static struct charger_ops sgm41511_chg_ops = {
 	/*HS03s for DEVAL5625-1125 by wenyaqi at 20210607 start*/
 	.set_hiz_mode = sgm41511_set_hiz_mode,
 	/*HS03s for DEVAL5625-1125 by wenyaqi at 20210607 end*/
+	/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 start */
+	.get_hiz_mode = sgm41511_get_hiz_mode,
+	/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 end */
 };
 
 static struct of_device_id sgm41511_charger_match_table[] = {

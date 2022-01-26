@@ -352,19 +352,21 @@ int eta6953_exit_hiz_mode(struct eta6953 *eta)
 }
 EXPORT_SYMBOL_GPL(eta6953_exit_hiz_mode);
 
-int eta6953_get_hiz_mode(struct eta6953 *eta, u8 *state)
-{
-	u8 val;
-	int ret;
+/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 start */
+// int eta6953_get_hiz_mode(struct eta6953 *eta, u8 *state)
+// {
+// 	u8 val;
+// 	int ret;
 
-	ret = eta6953_read_byte(eta, ETA6953_REG_00, &val);
-	if (ret)
-		return ret;
-	*state = (val & REG00_ENHIZ_MASK) >> REG00_ENHIZ_SHIFT;
+// 	ret = eta6953_read_byte(eta, ETA6953_REG_00, &val);
+// 	if (ret)
+// 		return ret;
+// 	*state = (val & REG00_ENHIZ_MASK) >> REG00_ENHIZ_SHIFT;
 
-	return 0;
-}
-EXPORT_SYMBOL_GPL(eta6953_get_hiz_mode);
+// 	return 0;
+// }
+// EXPORT_SYMBOL_GPL(eta6953_get_hiz_mode);
+/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 end */
 
 static int eta6953_enable_term(struct eta6953 *eta, bool enable)
 {
@@ -1245,6 +1247,26 @@ static int eta6953_set_hiz_mode(struct charger_device *chg_dev, bool en)
 	return ret;
 }
 
+/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 start */
+static int eta6953_get_hiz_mode(struct charger_device *chg_dev)
+{
+	int ret;
+	struct eta6953 *bq = dev_get_drvdata(&chg_dev->dev);
+	u8 val;
+	ret = eta6953_read_byte(bq, ETA6953_REG_00, &val);
+	if (ret == 0){
+		pr_err("Reg[%.2x] = 0x%.2x\n", ETA6953_REG_00, val);
+	}
+	/*HS03s added for DEVAL5626-463 by wangzikang at 20210823 start */
+	ret = (val & REG00_ENHIZ_MASK) >> REG00_ENHIZ_SHIFT;
+	/*HS03s added for DEVAL5626-463 by wangzikang at 20210823 end */
+
+	pr_err("%s:hiz mode %s\n",__func__, ret ? "enabled" : "disabled");
+
+	return ret;
+}
+/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 end */
+
 static struct charger_ops eta6953_chg_ops = {
 	/* Normal charging */
 	.plug_in = eta6953_plug_in,
@@ -1297,6 +1319,9 @@ static struct charger_ops eta6953_chg_ops = {
 
 	.get_chr_status = eta6953_get_charging_status,
 	.set_hiz_mode = eta6953_set_hiz_mode,
+	/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 start */
+	.get_hiz_mode = eta6953_get_hiz_mode,
+	/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 end */
 };
 
 static struct of_device_id eta6953_charger_match_table[] = {

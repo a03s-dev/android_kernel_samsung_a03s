@@ -430,6 +430,9 @@ struct mtk_charger {
 	bool batt_cap_control;
 	#endif
 	/*HS03s for SR-AL5625-01-272 by wenyaqi at 20210427 end*/
+	#ifndef HQ_FACTORY_BUILD	//ss version
+	struct delayed_work poweroff_dwork;
+	#endif
 };
 
 /* functions which framework needs*/

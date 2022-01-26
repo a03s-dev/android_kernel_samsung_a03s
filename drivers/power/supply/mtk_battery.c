@@ -352,7 +352,6 @@ static enum power_supply_property battery_props[] = {
 
 /*HS03s for SR-AL5625-01-286 by wenyaqi at 20210426 start*/
 #ifndef HQ_FACTORY_BUILD	//ss version
-extern int g_sec_battery_cable_timeout;
 static void ss_get_prop_batt_misc_event(struct mtk_battery *gm,
 					union power_supply_propval *val)
 {
@@ -367,11 +366,9 @@ static void ss_get_prop_batt_misc_event(struct mtk_battery *gm,
 	power_supply_get_property(psys, POWER_SUPPLY_PROP_USB_TYPE, &chr_type);
 
 	if (gm) {
-		if (g_sec_battery_cable_timeout ||
-			chr_type.intval == POWER_SUPPLY_TYPE_USB_FLOAT) {
+		if (chr_type.intval == POWER_SUPPLY_TYPE_USB_FLOAT) {
 			val->intval = BATT_MISC_EVENT_TIMEOUT_OPEN_TYPE;
-			bm_debug("%s batt_cable_timeout:%d charge_type:%d\n",
-					__func__, g_sec_battery_cable_timeout, chr_type.intval);
+			bm_debug("%s  charge_type:%d\n",__func__, chr_type.intval);
 		} else {
 			bm_err("%s gm is NULL\n", __func__);
 		}

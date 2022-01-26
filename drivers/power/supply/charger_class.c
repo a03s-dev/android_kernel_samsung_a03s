@@ -303,6 +303,18 @@ int charger_dev_set_hiz_mode(struct charger_device *chg_dev, bool enable)
 EXPORT_SYMBOL(charger_dev_set_hiz_mode);
 /*HS03s for DEVAL5625-1125 by wenyaqi at 20210607 end*/
 
+/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 start */
+int charger_dev_get_hiz_mode(struct charger_device *chg_dev)
+{
+	if (chg_dev != NULL && chg_dev->ops != NULL &&
+		chg_dev->ops->get_hiz_mode)
+		return chg_dev->ops->get_hiz_mode(chg_dev);
+
+	return -ENOTSUPP;
+}
+EXPORT_SYMBOL(charger_dev_get_hiz_mode);
+/*HS03s added for DEVAL5626-463 by wangzikang at 20210729 end */
+
 int charger_dev_dump_registers(struct charger_device *chg_dev)
 {
 	if (chg_dev != NULL && chg_dev->ops != NULL &&
